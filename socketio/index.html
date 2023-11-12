@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');      
+      html, body {
+        margin: 0px;
+        padding: 0px;
+        font-family: 'Varela Round', sans-serif;
+        font-size: 1.1rem;
+      }
+      .app-container {
+        height: 100vh;
+        display: grid;
+        grid-template-rows: minmax(5px, 1fr) minmax(0px, 800px) minmax(5px, 1fr);
+        grid-template-columns: minmax(5px, 1fr) minmax(0px, 600px) minmax(5px, 1fr);
+      }
+        .chat-container {
+          grid-area: 2 / 2 / 3 / 3;
+          display: grid;
+          grid-template-rows: 1fr 40px;
+          border: 1px solid #555;
+          padding: 10px;
+        }
+          .chat-msg-list-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+          }
+            .chat-msg {
+              margin-bottom: 10px;
+              padding: 10px 5px;
+              border: 1px solid #555;
+
+              &.self {
+                opacity: 0.5;
+              }
+            }
+          .chat-msg-input-container {
+            display: grid;
+            grid-column-gap: 10px;
+            grid-template-columns: 1fr auto;
+          }
+            .chat-msg-input {
+              font-family: 'Varela Round', sans-serif;
+              font-size: 1.1rem;
+            }
+            .chat-send-btn-container {
+              display: flex;
+            }
+              .chat-send-btn {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                border: 1px solid #555;
+                transition: background 0.2s;
+              }
+                .chat-send-btn>span {
+                  margin: 5px 10px;
+                }
+                .chat-send-btn:hover {
+                  cursor: pointer;
+                  background: lightseagreen;
+                }
+    </style>
+  </head>
+  <body>
+    
+    <div class="app-container">
+      <div class="chat-container">
+        <div class="chat-msg-list-container"></div>
+        <div class="chat-msg-input-container">
+          <input class="chat-msg-input" type="text" name="message"></input>
+          <div class="chat-send-btn-container">
+            <div class="chat-send-btn"><span>Send</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const socket = io();
+
+      const msgs = [];
+
+      const clampMsgs = msgs => {
+        while (msgs.length > 10) {
+          msgs.shift();
+        }
+      };
+
+      const createMsg = (msgJson, isSelf) => {
+        const div = document.createElement("div");
+        div.className = `chat-msg ${(isSelf)? "self": ""}`;
+        div.innerHTML = `${msgJson.socket_id}: ${msgJson.message}`;
+        return div;
+      };
+
+      const render = () => {
+        clampMsgs(msgs);
+        const msgList = document.querySelector(".chat-msg-list-container");
+        msgList.innerHTML = "";
+        for (let msgJson of msgs) {
+          msgList.appendChild(createMsg(msgJson, socket.id === msgJson.socket_id));
+        }
+      };
+
+      function send(msg) {
+        socket.emit('message', msg);
+      }
+
+      socket.on('message', (msg) => {
+        msgs.push(msg);
+        render();
+      });
+
+      const msgInput = document.querySelector(".chat-msg-input");
+
+      document.querySelector(".chat-msg-input").addEventListener("keypress", e => {
+        if (e.key === "Enter" && msgInput.value !== "") {
+          send(msgInput.value);
+          msgInput.value = "";
+        }
+      });
+
+      document.querySelector(".chat-send-btn").addEventListener("click", e => {
+        if (msgInput.value !== "") {
+          send(msgInput.value);
+          msgInput.value = "";
+        }
+      });
+    </script>
+  </body>
+</html>
